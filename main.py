@@ -26,10 +26,16 @@ def create_image():
     BLACK = 'black'
     WHITE = 'white'
 
+    font_size = 45
+
     image = Image.new('RGB', (WIDTH, HEIGHT), BLACK)
     dc = ImageDraw.Draw(image)
 
-    dc.text((32,32), str(mouse_clicks), fill=WHITE, anchor="mm", font_size=45)
+    # if number reaches 3 digits, make font smaller
+    if len(str(mouse_clicks)) > 2:
+        font_size = 35
+
+    dc.text((32,32), str(mouse_clicks), fill=WHITE, anchor="mm", font_size=font_size)
 
     return image
 
