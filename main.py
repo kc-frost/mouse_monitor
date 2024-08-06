@@ -3,13 +3,23 @@ from PIL import Image, ImageDraw
 from pynput import mouse
 import threading
 
+# stop flag
+stop_event = threading.Event()
+
 # global variables
 mouse_clicks = 0
 icon = None
+listener = None
 
 def main():
-    mouse_thread()
-    tray_thread()
+    icon_thread = threading.Thread(target=tray_setup)
+    mouse_thread = threading.Thread(target=mouse_listener)
+    
+    icon_thread.start()
+    mouse_thread.start()
+
+    icon_thread.join()
+    mouse_thread.join()
 
 # monitoring mouse clicks
 def on_click(x, y, button, pressed):
@@ -26,6 +36,7 @@ def create_image():
     BLACK = 'black'
     WHITE = 'white'
 
+    # default font size
     font_size = 45
 
     image = Image.new('RGB', (WIDTH, HEIGHT), BLACK)
@@ -44,16 +55,24 @@ def update_icon():
     if icon:
         icon.icon = create_image()
 
-# threads
-def tray_thread():
-    global icon
-    icon = pystray.Icon("Mouse Clicks",create_image())
-    tray_thread = threading.Thread(target=icon.run)
-    tray_thread.start()
+# quits program when systray's 'exit' is clicked
+def on_exit(icon, item):
+    stop_event.set()
+    icon.stop()
 
-def mouse_thread(): 
-    listener = mouse.Listener(
-    on_click=on_click)
+# threads
+def tray_setup():
+    global icon
+    icon = pystray.Icon("Mouse Clicks", create_image(), menu=pystray.Menu(pystray.MenuItem("Exit", on_exit)))
+    icon.run()
+
+def mouse_listener(): 
+    listener = mouse.Listener(on_click=on_click)
     listener.start()
 
-main()
+    # stops when flag turns true
+    stop_event.wait()
+    listener.stop()
+
+if __name__ == "__main__":
+    main()
